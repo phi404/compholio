@@ -28,7 +28,7 @@ function atomsOf(inlines: readonly Inline[], capacity: number, warnRuby: () => v
 }
 export type PaginationBlock = (Block | { kind: 'specialPage'; id: string; page: Omit<SpecialRenderedPage, 'number'> }) & { layoutStyle?: BookStyle; sectionId?: string };
 export function paginate(doc: { schemaVersion: 1; title: string; blocks: readonly PaginationBlock[] }, rawStyle: BookStyle): RenderedPages {
-  if (rawStyle.writingMode !== 'vertical-rl' || rawStyle.columns !== 1 || doc.blocks.some(b => b.layoutStyle || b.kind === 'specialPage' && b.page.imageInfo || 'inlines' in b && (b.insetEm || b.endInsetEm || b.beforeEm || b.afterEm || b.lineHeight || b.orphans || b.widows || b.inlines.some(r => r.fontPt || r.letterSpacingEm || r.orientation || r.numbers || r.emphasis === 'circle' || r.emphasis === 'triangle')))) return paginateAdvanced(doc.blocks, rawStyle);
+  if (rawStyle.fontFamily !== 'Book Mincho' || rawStyle.writingMode !== 'vertical-rl' || rawStyle.columns !== 1 || doc.blocks.some(b => b.layoutStyle || b.kind === 'specialPage' && b.page.imageInfo || 'inlines' in b && (b.insetEm || b.endInsetEm || b.beforeEm || b.afterEm || b.lineHeight || b.orphans || b.widows || b.inlines.some(r => r.fontFamily || r.fontPt || r.letterSpacingEm || r.orientation || r.numbers || r.emphasis === 'circle' || r.emphasis === 'triangle')))) return paginateAdvanced(doc.blocks, rawStyle);
   const style = validateStyle(rawStyle), grid = geometry(style), pages: BookPage[] = [], diagnostics: Diagnostic[] = [];
   const headingScale = Math.max(1, Math.min(1.15, (style.lineHeight - .04) / 1.51));
   let page: FlowPage = { kind: 'flow', number: 1, lines: [] }, column = 0, currentHeading = '', afterSpecial = false;

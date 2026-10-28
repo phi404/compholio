@@ -3,7 +3,7 @@ import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 
 export const contentSecurityPolicy = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' blob: data:; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'";
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.svg': 'image/svg+xml', '.png': 'image/png', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.otf': 'font/otf', '.map': 'application/json' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.svg': 'image/svg+xml', '.png': 'image/png', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.otf': 'font/otf', '.ttf': 'font/ttf', '.woff2': 'font/woff2', '.map': 'application/json' };
 
 export function normalizeBasePath(value = '/') {
   if (!/^\/(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]*$/u.test(value) || value.split('/').some(part => ['.', '..'].includes(part))) throw new Error('Invalid site base path');

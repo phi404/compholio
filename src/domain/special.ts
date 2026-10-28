@@ -2,6 +2,8 @@ import type { BookAsset, PageElement, PageOverride, SpecialPageDefinition, Speci
 import { identifier, object, textValue } from './validation.js';
 import { finite, integer } from './style.js';
 import { validatePage } from './styles.js';
+import { fontDefinition } from './fonts.js';
+import { paperHex } from './colors.js';
 
 export const SPECIAL_ROLES: SpecialRole[] = ['title', 'chapter-title', 'toc', 'colophon', 'illustration', 'free', 'external'];
 export const ROLE_NAMES: Record<SpecialRole, string> = { title: '表題紙', 'chapter-title': '章扉', toc: '目次', colophon: '奥付', illustration: '挿絵', free: '自由ページ', external: '外部ページ' };
@@ -12,13 +14,13 @@ export function newSpecialPage(id: string, role: SpecialRole): SpecialPageDefini
     ...(['title', 'chapter-title', 'colophon', 'external'].includes(role) ? { localStyle: { showFolio: false, showHeads: false } } : {}) };
 }
 export function validateElement(value: unknown): asserts value is PageElement {
-  object(value, ['id', 'kind', 'xMm', 'yMm', 'widthMm', 'heightMm', 'locked', 'text', 'fontPt', 'fontWeight', 'alignment', 'direction', 'assetId', 'assetPage', 'fit', 'color', 'strokeMm'], '自由ページの要素');
+  object(value, ['id', 'kind', 'xMm', 'yMm', 'widthMm', 'heightMm', 'locked', 'text', 'fontFamily', 'fontPt', 'fontWeight', 'alignment', 'direction', 'assetId', 'assetPage', 'fit', 'color', 'strokeMm'], '自由ページの要素');
   identifier(value.id); finite(value.xMm, '横位置', 0, 350); finite(value.yMm, '縦位置', 0, 500);
   finite(value.widthMm, '幅', .1, 350); finite(value.heightMm, '高さ', .1, 500);
   if (value.locked !== undefined && typeof value.locked !== 'boolean') throw new Error('要素の固定を確認してください。');
   const base = ['id', 'kind', 'xMm', 'yMm', 'widthMm', 'heightMm', 'locked'];
   if (value.kind === 'text') {
-    object(value, [...base, 'text', 'fontPt', 'fontWeight', 'alignment', 'direction'], '自由ページの文字'); textValue(value.text, 10000, '文字'); finite(value.fontPt, '文字サイズ', 5, 72);
+    object(value, [...base, 'text', 'fontFamily', 'fontPt', 'fontWeight', 'alignment', 'direction'], '自由ページの文字'); textValue(value.text, 10000, '文字'); if(value.fontFamily !== undefined) fontDefinition(String(value.fontFamily)); finite(value.fontPt, '文字サイズ', 5, 72);
     if (![400, 700].includes(value.fontWeight as number) || !['start', 'center', 'end'].includes(value.alignment as string) || !['horizontal', 'vertical'].includes(value.direction as string)) throw new Error('自由ページの文字書式を確認してください。');
   } else if (value.kind === 'image') {
     object(value, [...base, 'assetId', 'assetPage', 'fit'], '自由ページの画像'); identifier(value.assetId); integer(value.assetPage, '素材内のページ', 1, 20);
@@ -81,7 +83,8 @@ export function validatePageOverrides(value: unknown): PageOverride[] {
   for (const r of value) {
     object(r, ['id', 'pages', 'folio', 'hideHeads', 'paperColor'], '物理ページの例外'); identifier(r.id); if (ids.has(r.id)) throw new Error('ページ例外IDが重複しています。'); ids.add(r.id);
     if (!Array.isArray(r.pages) || !r.pages.length || r.pages.length > 100000 || new Set(r.pages).size !== r.pages.length) throw new Error('選択したページを確認してください。'); for (const n of r.pages) integer(n, '通しページ');
-    if (r.folio !== undefined && typeof r.folio !== 'boolean' || r.hideHeads !== undefined && typeof r.hideHeads !== 'boolean' || r.paperColor !== undefined && !['white', 'warm'].includes(r.paperColor as string)) throw new Error('ページの表示を確認してください。');
+    if (r.folio !== undefined && typeof r.folio !== 'boolean' || r.hideHeads !== undefined && typeof r.hideHeads !== 'boolean') throw new Error('ページの表示を確認してください。');
+    if (r.paperColor !== undefined) paperHex(r.paperColor as string);
   }
   return structuredClone(value as PageOverride[]);
 }

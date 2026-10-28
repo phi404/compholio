@@ -2,6 +2,8 @@ import type { BookStyle, DecorationPosition, FolioRule, RunningHead } from '../d
 import { decorationSide } from '../domain/decoration.js';
 import { geometry, PAGE_SIZES, presetStyle, PRESETS, IMAGE_PRESETS, imageStyle, type Preset } from '../domain/style.js';
 import { el, input, setValue } from './dom.js';
+import { appearanceEditor } from './appearance.js';
+import { FONT_CATALOG } from '../domain/fonts.js';
 
 interface SettingsHost {
   getStyle(): BookStyle; update(style: BookStyle): boolean;
@@ -12,6 +14,9 @@ export function settings(host: SettingsHost) {
   for (const [key,value] of Object.entries(IMAGE_PRESETS)) imagePreset.append(new Option(value.label,key));
   imagePreset.addEventListener('change',()=>{if(!imagePreset.value)return;host.setOffset(0);host.singleView();changed(imageStyle(host.getStyle(),imagePreset.value as keyof typeof IMAGE_PRESETS));imagePreset.value='';});
   const changed = (next: BookStyle) => { if (host.update(next)) el('preset-caption').textContent = '原稿に合わせて調整しています。'; };
+  const appearance=appearanceEditor({getStyle:()=>host.getStyle(),change:changed});
+  const folioFont=el<HTMLSelectElement>('folio-font');for(const font of FONT_CATALOG)folioFont.append(new Option(font.label,font.family));
+  folioFont.addEventListener('change',()=>{const s=host.getStyle();const folio={...s.folio!};if(folioFont.value)folio.fontFamily=folioFont.value;else delete folio.fontFamily;changed({...s,folio});});
   const number = (id: string) => Number(input(id).value);
   const numeric = (id: string, change: (style: BookStyle, value: number) => BookStyle) => input(id).addEventListener('change', () => changed(change(host.getStyle(), number(id))));
   for (const [id, key] of [['font-size', 'fontPt'], ['line-height', 'lineHeight']] as const) input(id).addEventListener('input', () => changed({ ...host.getStyle(), [key]: number(id) }));
@@ -32,7 +37,7 @@ export function settings(host: SettingsHost) {
     sync();
   });
   input('auto-indent').addEventListener('change', () => changed({ ...host.getStyle(), paragraphIndent: input('auto-indent').checked }));
-  el<HTMLSelectElement>('paper-color').addEventListener('change', event => changed({ ...host.getStyle(), paperColor: (event.currentTarget as HTMLSelectElement).value as 'warm' | 'white' }));
+
   el<HTMLSelectElement>('page-layout').addEventListener('change', event => {
     const s = host.getStyle(), uniform = (event.currentTarget as HTMLSelectElement).value === 'uniform';
     changed({ ...s, pageLayout: uniform ? 'uniform' : 'book' });
@@ -73,9 +78,10 @@ export function settings(host: SettingsHost) {
       for (const rule of rules) {
         const form = document.createElement('div'); form.className = 'rule-fields'; form.dataset.ruleId = rule.id;
         form.innerHTML = `<div class="field-pair"><label>開始ページ<input data-field="from" aria-label="範囲の開始ページ" type="number" min="1" max="100000"></label><label>終了ページ<input data-field="to" aria-label="範囲の終了ページ" type="number" min="1" max="100000" placeholder="最後まで"></label></div>${kind === 'head' ? '<label class="select-label">上部の文字<input data-field="text" aria-label="柱の文字" type="text" maxlength="100" placeholder="作品名・章名など"></label><div class="field-pair"><label>対象<select data-field="side" aria-label="柱の対象"><option value="both">全ページ</option><option value="odd">奇数ページ</option><option value="even">偶数ページ</option></select></label><label>位置<select data-field="position" aria-label="柱の位置"><option value="top-outer">上・小口</option><option value="top-inner">上・ノド</option><option value="top-left">上・左</option><option value="top-center">上・中央</option><option value="top-right">上・右</option></select></label></div><div class="field-pair"><label>大きさ / pt<input data-field="fontPt" aria-label="柱の大きさ" type="number" min="5" max="12" step="0.5"></label><label>端から / mm<input data-field="insetMm" aria-label="柱の端からの距離" type="number" min="3" max="20" step="0.5"></label></div>' : '<label class="check-label"><input data-field="enabled" aria-label="範囲内の番号を表示" type="checkbox">範囲内の番号を表示</label><label class="select-label">開始番号（空欄で続き）<input data-field="startNumber" aria-label="範囲の開始番号" type="number" min="0" max="100000" placeholder="続きの番号"></label>'}<button type="button" class="rule-remove">この指定を削除</button>`;
+        if(kind==='head'){const row=document.createElement('label');row.className='select-label';row.textContent='書体';const control=document.createElement('select');control.dataset.field='fontFamily';control.setAttribute('aria-label','柱の書体');control.append(new Option('本の書体に従う',''));for(const font of FONT_CATALOG)control.append(new Option(font.label,font.family));row.append(control);form.insertBefore(row,form.querySelector('.rule-remove'));}
         const edit = (control: HTMLInputElement | HTMLSelectElement) => {
           const s = structuredClone(host.getStyle()), items = kind === 'head' ? [...s.runningHeads!] : [...s.folio!.rules], item = items.find(r => r.id === rule.id)!;
-          const key = control.dataset.field!, value = control instanceof HTMLInputElement && control.type === 'checkbox' ? control.checked : ['text', 'side', 'position'].includes(key) ? control.value : control.value === '' && key === 'to' ? null : Number(control.value);
+          const key = control.dataset.field!, value = control instanceof HTMLInputElement && control.type === 'checkbox' ? control.checked : key === 'fontFamily' ? control.value || undefined : ['text', 'side', 'position'].includes(key) ? control.value : control.value === '' && key === 'to' ? null : Number(control.value);
           if (key === 'startNumber' && control.value === '') delete (item as FolioRule).startNumber; else Object.assign(item, { [key]: value });
           if (item.to !== null && item.from > item.to) { if (key === 'from') item.to = item.from; else item.from = item.to; }
           changed(kind === 'head' ? { ...s, runningHeads: items as RunningHead[] } : { ...s, folio: { ...s.folio!, rules: items as FolioRule[] } });
@@ -109,7 +115,7 @@ export function settings(host: SettingsHost) {
     setValue('page-width', s.page.widthMm); setValue('page-height', s.page.heightMm); setValue('font-pt', s.fontPt); setValue('line-mm', Number(grid.lineMm.toFixed(3)));
     for (const [id, value] of [['margin-top', s.margins.topMm], ['margin-bottom', s.margins.bottomMm], ['margin-inner', s.margins.innerMm], ['margin-outer', s.margins.outerMm], ['grid-chars', s.maxCharsPerLine ?? ''], ['grid-lines', s.maxLinesPerPage ?? '']] as const) setValue(id, value);
     el('inner-label').textContent = uniform ? '右 / mm' : 'ノド / mm'; el('outer-label').textContent = uniform ? '左 / mm' : '小口 / mm';
-    input('auto-indent').checked = !!s.paragraphIndent; setValue('paper-color', s.paperColor ?? 'white');
+    input('auto-indent').checked = !!s.paragraphIndent; appearance.sync(); setValue('folio-font',s.folio?.fontFamily??'');
     el('grid-size').textContent = `${grid.chars}字 × ${grid.lines}行${s.columns===2?' × 2段':''}`; el('layout-info').textContent = el('grid-size').textContent;
     const format = key === 'custom' ? '自由寸法' : PAGE_SIZES[key as keyof typeof PAGE_SIZES].label;
     el('format-label').textContent = uniform ? `${Math.round(s.page.widthMm/25.4*300)} × ${Math.round(s.page.heightMm/25.4*300)} px` : format; const dimensions = document.createElement('span'); dimensions.textContent = `${s.page.widthMm} × ${s.page.heightMm} mm`; el('format-label').append(dimensions); el('edition').textContent = `${format} · ${s.writingMode==='vertical-rl'?'縦書き':'横書き'}`;

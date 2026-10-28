@@ -1,3 +1,5 @@
+import { FONT_CATALOG } from '../domain/fonts.js';
+import { PAPER_COLORS } from '../domain/colors.js';
 import type { BookModel, BookAsset, SpecialPageDefinition, SpecialRole, PageElement, RunningElement, Scope, PageProperties } from '../domain/model.js';
 import type { RenderedPages, DecorationPosition } from '../domain/contracts.js';
 import { flattenDocument } from '../domain/publication.js';
@@ -213,6 +215,7 @@ export function workspaceViews(host: Host) {
     const edit = (patch: object) => update(pageId, { elements: special(pageId).elements.map(e => e.id === id ? { ...e, ...patch } : e) });
     if (element.kind === 'text') {
       field(parent, 'テキスト', 'element-text', element.text, v => edit({ text: v }), undefined, true);
+      field(parent,'書体','element-font-family',element.fontFamily??'',v=>edit({fontFamily:v||undefined}),[['','本の書体に従う'],...FONT_CATALOG.map(font=>[font.family,font.label] as const)]);
       field(parent, '文字サイズ / pt', 'element-font', element.fontPt, v => edit({ fontPt: Number(v) }));
       iconChoices(parent, 'element-align', '揃え', alignmentOptions.filter(([value]) => value !== ''), element.alignment, v => edit({ alignment: v }), element.direction === 'vertical');
       field(parent, '書字方向', 'element-direction', element.direction, v => edit({ direction: v }), [['horizontal', '横書き'], ['vertical', '縦書き']]);
@@ -244,6 +247,7 @@ export function workspaceViews(host: Host) {
     field(parent, '配置', 'running-position', e.position, v => edit({ position: v as DecorationPosition }), [['top-outer', '上・小口'], ['top-center', '上・中央'], ['top-inner', '上・ノド'], ['bottom-outer', '下・小口'], ['bottom-center', '下・中央'], ['bottom-inner', '下・ノド']]);
     field(parent, '左右ページ', 'running-side', e.side, v => edit({ side: v as RunningElement['side'] }), [['both', '両方'], ['odd', '奇数ページ'], ['even', '偶数ページ']]);
     field(parent, '章の最初のページ', 'running-first', String(e.hideOnSectionFirst), v => edit({ hideOnSectionFirst: v === 'true' }), [['false', '表示する'], ['true', '非表示にする']]);
+    field(parent,'書体','running-font-family',e.fontFamily??'',v=>change(b=>({...b,runningElements:b.runningElements.map(item=>{if(item.id!==id)return item;const next={...item};if(v)next.fontFamily=v;else delete next.fontFamily;return next;})})),[['','本の書体に従う'],...FONT_CATALOG.map(font=>[font.family,font.label] as const)]);
     const d = details('詳細', parent); field(d, '大きさ / pt', 'running-size', e.fontPt, v => edit({ fontPt: Number(v) })); field(d, '端から / mm', 'running-inset', e.insetMm, v => edit({ insetMm: Number(v) }));
     button(actions(parent), 'この柱を削除', () => { change(b => ({ ...b, runningElements: b.runningElements.filter(e => e.id !== id) })); host.select({ kind: 'book' }); });
   }
@@ -258,7 +262,7 @@ export function workspaceViews(host: Host) {
     });
     field(parent, 'ノンブル', 'pages-folio', existing?.folio === false ? 'hide' : 'inherit', v => edit({ folio: v === 'hide' ? false : undefined }), [['inherit', '本全体の設定に従う'], ['hide', 'このページでは非表示']]);
     field(parent, '柱', 'pages-heads', existing?.hideHeads ? 'hide' : 'inherit', v => edit({ hideHeads: v === 'hide' ? true : undefined }), [['inherit', '範囲の設定に従う'], ['hide', 'このページでは非表示']]);
-    field(parent, '紙の色', 'pages-paper', existing?.paperColor ?? '', v => edit({ paperColor: v || undefined }), [['', '本全体の設定に従う'], ['white', '白'], ['warm', '温かい白']]);
+    field(parent, '紙の色', 'pages-paper', existing?.paperColor ?? '', v => edit({ paperColor: v || undefined }), [['', '本全体の設定に従う'], ...PAPER_COLORS, ...(existing?.paperColor&&!PAPER_COLORS.some(([value])=>value===existing.paperColor)?[[existing.paperColor,'カスタム'] as const]:[])]);
     if (existing) button(actions(parent), 'このページ範囲の例外を解除', () => { change(b => ({ ...b, pageOverrides: b.pageOverrides.filter(r => r.id !== existing.id) })); sync(true); }, 'reset-pages');
   }
   function chapterFields(id: string, parent: HTMLElement): void {

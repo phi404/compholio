@@ -132,9 +132,9 @@ export function typesetPublication(project: LayoutPublication): RenderedPages {
   for (const page of result.pages) if (page.kind !== 'flow') for (const e of page.elements) {
     const size=(page.style??style).page, intentional=e.kind==='image' && ['bleed','spread'].includes(e.imagePlacement??'');
     if (!intentional && (e.yMm<0 || e.xMm<0 || e.yMm + e.heightMm > size.heightMm || e.xMm + e.widthMm > size.widthMm)) diagnostics.push({ code: 'element-overflow', blockId: page.blockId, pageNumber:page.number, elementId:e.id, message: 'ページの内容が用紙からはみ出しています。サイズ・位置を確認してください。' });
-    if (e.kind === 'text' && textBoxOverflows(e as Extract<PageElement, { kind: 'text' }>)) diagnostics.push({ code: 'text-box-overflow', blockId: page.blockId, pageNumber:page.number, elementId:e.id, message: '特殊ページのテキストが枠に収まりません。原文は保持されています。文字サイズ・枠の大きさ・内容を確認してください。' });
+    if (e.kind === 'text' && textBoxOverflows(e as Extract<PageElement, { kind: 'text' }>,page.style?.fontFamily??style.fontFamily)) diagnostics.push({ code: 'text-box-overflow', blockId: page.blockId, pageNumber:page.number, elementId:e.id, message: '特殊ページのテキストが枠に収まりません。原文は保持されています。文字サイズ・枠の大きさ・内容を確認してください。' });
   }
-  for (const page of result.pages) if (page.kind === 'flow') for (const element of page.elements ?? []) if (element.kind === 'text' && textBoxOverflows(element as Extract<PageElement, { kind: 'text' }>)) diagnostics.push({ code: 'text-box-overflow', ...(element.blockId ? { blockId: element.blockId } : {}), pageNumber: page.number, elementId: element.id, message: '図の説明が予約した枠に収まりません。文字サイズや内容を確認してください。' });
+  for (const page of result.pages) if (page.kind === 'flow') for (const element of page.elements ?? []) if (element.kind === 'text' && textBoxOverflows(element as Extract<PageElement, { kind: 'text' }>,page.style?.fontFamily??style.fontFamily)) diagnostics.push({ code: 'text-box-overflow', ...(element.blockId ? { blockId: element.blockId } : {}), pageNumber: page.number, elementId: element.id, message: '図の説明が予約した枠に収まりません。文字サイズや内容を確認してください。' });
   let previousSection: string | undefined;
   const pageSections = result.pages.map(page => {
     const sectionId = sectionByBlock.get(page.kind === 'flow' ? page.lines[0]?.blockId ?? page.elements?.[0]?.blockId ?? '' : page.blockId) ?? previousSection;
@@ -155,7 +155,7 @@ export function typesetPublication(project: LayoutPublication): RenderedPages {
       validateRunningElement(e,resolvedStyle);
       const text = e.content.kind === 'text' ? e.content.text : e.content.kind === 'title' ? tree.title : e.content.kind === 'author' ? tree.author : e.content.kind === 'chapter' ? chapter?.kind === 'heading' ? chapter.inlines.map(i => i.kind === 'text' ? i.text : i.base).join('') : '' : e.content.kind === 'heading' ? page.heading ?? '' : String(folioNumber(style.folio, page.number) ?? page.number);
       const location = `${e.position.split('-')[0]}-${decorationSide(style.pageLayout, page.number, e.position, style.binding)}`;
-      elements.set(location, { id: e.id, text, position: e.position, fontPt: e.fontPt, insetMm: e.insetMm });
+      elements.set(location, { id: e.id, text, position: e.position, ...(e.fontFamily?{fontFamily:e.fontFamily}:{}), fontPt: e.fontPt, insetMm: e.insetMm });
     }
     for (const element of elements.values()) {
       const side = decorationSide(style.pageLayout, page.number, element.position, style.binding), f = style.folio;

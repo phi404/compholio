@@ -1,0 +1,31 @@
+Compholioの同梱書体
+
+Noto Serif JP Regular
+https://github.com/notofonts/noto-cjk
+License: SIL Open Font License 1.1 (OFL.txt)
+
+しっぽり明朝
+https://raw.githubusercontent.com/google/fonts/main/ofl/shipporimincho/ShipporiMincho-Regular.ttf
+License: SIL Open Font License 1.1 (ShipporiMincho-Regular-OFL.txt)
+
+ZEN角ゴシック New
+https://raw.githubusercontent.com/google/fonts/main/ofl/zenkakugothicnew/ZenKakuGothicNew-Regular.ttf
+License: SIL Open Font License 1.1 (ZenKakuGothicNew-Regular-OFL.txt)
+
+ZEN丸ゴシック
+https://raw.githubusercontent.com/google/fonts/main/ofl/zenmarugothic/ZenMaruGothic-Regular.ttf
+License: SIL Open Font License 1.1 (ZenMaruGothic-Regular-OFL.txt)
+
+ZENオールド明朝
+https://raw.githubusercontent.com/google/fonts/main/ofl/zenoldmincho/ZenOldMincho-Regular.ttf
+License: SIL Open Font License 1.1 (ZenOldMincho-Regular-OFL.txt)
+
+Noto Sans JP
+https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf
+License: SIL Open Font License 1.1 (NotoSansJP-Regular-OFL.txt)
+
+源暎こぶり明朝
+https://okoneya.jp/font/genei-koburimin.html
+License: SIL Open Font License 1.1 (GenEiKoburiMin6-R-OFL.txt)
+
+配布元の書体を文字の削除なしでWOFF2へ圧縮しています。Noto Sans JPは配布元の可変フォントからRegular（wght=400）を生成しています。源暎こぶり明朝は配布元のTTFを変更せず同梱しています。他の書体は圧縮前後の各テーブルの一致を確認しています（headのチェックサム調整欄・WOFF2圧縮フラグ、WOFF2で除外されるDSIG署名を除く）。

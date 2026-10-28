@@ -141,13 +141,13 @@ export function validatePublication(value: unknown): Publication {
   object(value, ['schemaVersion', 'syntax', 'source', 'document', 'styles', 'style', 'overrides', 'runningElements', 'metadata', 'specialPages', 'assets', 'pageOverrides', 'sourceDraft', 'printSettings'], 'プロジェクト');
   if (value.schemaVersion !== 3 || value.syntax !== 'markdown') throw new Error('未対応のプロジェクト形式です。');
   const syntax = value.syntax as 'markdown', documentTree = validateTree(value.document), styles = validateCatalog(value.styles), style = validateStyle(value.style);
-  object(value.style, ['page', 'writingMode', 'binding', 'columns', 'columnGapMm', 'fontFamily', 'fontPt', 'lineHeight', 'margins', 'maxCharsPerLine', 'maxLinesPerPage', 'pageLayout', 'paragraphIndent', 'paperColor', 'folio', 'runningHeads', 'pageCountMultiple'], '本の組版設定');
+  object(value.style, ['page', 'writingMode', 'binding', 'columns', 'columnGapMm', 'fontFamily', 'fontPt', 'lineHeight', 'margins', 'maxCharsPerLine', 'maxLinesPerPage', 'pageLayout', 'paragraphIndent', 'paperColor', 'textColor', 'folio', 'runningHeads', 'pageCountMultiple'], '本の組版設定');
   object(value.style.page, ['widthMm', 'heightMm'], '判型'); object(value.style.margins, ['topMm', 'bottomMm', 'innerMm', 'outerMm'], '余白');
   if (value.style.folio) {
-    object(value.style.folio, ['enabled', 'fromPage', 'startNumber', 'position', 'fontPt', 'insetMm', 'rules'], 'ノンブル');
+    object(value.style.folio, ['enabled', 'fromPage', 'startNumber', 'position', 'fontFamily', 'fontPt', 'insetMm', 'rules'], 'ノンブル');
     for (const rule of value.style.folio.rules as unknown[]) object(rule, ['id', 'from', 'to', 'enabled', 'startNumber'], '番号範囲');
   }
-  for (const head of (value.style.runningHeads ?? []) as unknown[]) object(head, ['id', 'from', 'to', 'side', 'position', 'text', 'fontPt', 'insetMm'], '既存の柱');
+  for (const head of (value.style.runningHeads ?? []) as unknown[]) object(head, ['id', 'from', 'to', 'side', 'position', 'text', 'fontFamily', 'fontPt', 'insetMm'], '既存の柱');
   validateDocumentReferences(documentTree, styles);
   if (!Array.isArray(value.overrides) || value.overrides.length > 200 || !Array.isArray(value.runningElements) || value.runningElements.length > 50) throw new Error('範囲指定は書式200件・柱50件以内にしてください。');
   const ids = new Set<string>();

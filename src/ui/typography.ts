@@ -30,7 +30,7 @@ export function typographyEditor(host: { book(): BookModel; change(book: BookMod
   function render(): void {
     parent.replaceChildren(); el('basic-type-controls').hidden = target !== 'all';
     const fields = document.createElement('div'); fields.className = 'typography-fields'; parent.append(fields);
-    styleFields(fields, 'type-character', 'character', character, updateCharacter, target === 'all' ? ['fontPt'] : []);
+    styleFields(fields, 'type-character', 'character', character, updateCharacter, target === 'all' ? ['fontPt','fontFamily'] : []);
     if (target !== 'all') {
       const d = document.createElement('details'); d.className = 'style-details'; d.open = true; const summary = document.createElement('summary'); summary.textContent = '揃えと余白'; d.append(summary); parent.append(d);
       styleFields<ParagraphProperties>(d, 'type-paragraph', 'paragraph', () => entry()!.properties, properties => {

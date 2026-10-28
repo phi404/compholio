@@ -40,6 +40,14 @@ with zipfile.ZipFile(root / manifest["preview"]) as archive:
         actual = Image.open(render_dir / f"page-{index + 1}.png").convert("RGB")
         preview = Image.open(BytesIO(archive.read(files[index]))).convert("RGB").resize(actual.size, Image.Resampling.LANCZOS)
         forms = form_details(page["/Resources"])
+        if "paperRgb" in manifest:
+            for image in [actual, preview]:
+                sample = image.getpixel((round(image.width * .02), round(image.height * .02)))
+                assert max(abs(a - b) for a, b in zip(sample, manifest["paperRgb"])) <= 2, ("paper", index, sample)
+        if index and "sourceBlankRgb" in manifest:
+            for image in [actual, preview]:
+                sample = image.getpixel((round(image.width * .02), round(image.height * .5)))
+                assert max(abs(a - b) for a, b in zip(sample, manifest["sourceBlankRgb"])) <= 2, ("source paper", index, sample)
         if index:
             text = page.extract_text()
             assert f"VECTOR-{index}" in text, (index, text)

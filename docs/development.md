@@ -58,7 +58,7 @@ GitHubリポジトリはphi404/compholio、試用ページはhttps://phi404.gith
 
 | 依存物 | 配布元・ライセンス |
 | --- | --- |
-| Noto Serif JP | [Noto CJK](https://github.com/notofonts/noto-cjk) / [OFL](../public/fonts/OFL.txt) |
+| 同梱書体7種 | [書体と出典](../public/fonts/NOTICE.txt) / 各OFL |
 | pdf-lib | [公式リポジトリ](https://github.com/Hopding/pdf-lib) / [MIT](../public/vendor/pdf-lib.LICENSE.md) |
 | PDF.js | [Mozilla](https://github.com/mozilla/pdf.js) / public/vendor/pdfjs/README.mdと同梱ライセンス |
 | fflate | [公式リポジトリ](https://github.com/101arrowz/fflate) / [MIT](../public/vendor/fflate.LICENSE.md) |

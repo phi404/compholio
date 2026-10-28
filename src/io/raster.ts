@@ -1,24 +1,15 @@
 import type { BookStyle, BookPage } from '../domain/contracts.js';
 import { renderPageSVG } from '../render/svg.js';
-import { bundledResources } from './resources.js';
-
-let fontData: Promise<string> | undefined;
-function fontDataURL(): Promise<string> {
-  return fontData ??= fetch(bundledResources.font).then(async response => {
-    if (!response.ok) throw new Error('本文フォントを読み込めません。');
-    const blob = await response.blob();
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('フォントを読み込めません。')); reader.readAsDataURL(blob);
-    });
-  });
-}
+import { pageFontData } from './fonts.js';
+import { paperHex } from '../domain/colors.js';
 export const DPI = 300;
 export const PAGE_PIXELS = { width: Math.round(105 * DPI / 25.4), height: Math.round(148 * DPI / 25.4) };
 export const pagePixels = (style: BookStyle) => ({ width: Math.round(style.page.widthMm * DPI / 25.4), height: Math.round(style.page.heightMm * DPI / 25.4) });
 export interface RasterOptions { dpi?: number; bleedMm?: number; blackText?: boolean }
 export async function rasterize(page: BookPage, style: BookStyle, transparent = false, options: RasterOptions = {}): Promise<HTMLCanvasElement> {
   await document.fonts.ready;
-  const svg = renderPageSVG(page, style, await fontDataURL(), transparent, options);
+  // Paint paper once on the destination; a second antialiased SVG edge can shift RGB values.
+  const svg = renderPageSVG(page, style, await pageFontData(page,style), true, options);
   const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
   const bleed = options.bleedMm ?? 0, dpi = options.dpi ?? DPI, size = page.style?.page ?? style.page;
   const pixels = { width: Math.round((size.widthMm + 2 * bleed) * dpi / 25.4), height: Math.round((size.heightMm + 2 * bleed) * dpi / 25.4) }, canvas = document.createElement('canvas');
@@ -28,14 +19,14 @@ export async function rasterize(page: BookPage, style: BookStyle, transparent = 
   try {
     await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error('ページ画像を生成できませんでした。')); image.src = url; });
     const context = canvas.getContext('2d'); if (!context) throw new Error('画像を生成できません。');
-    if (!transparent) { context.fillStyle = (page.style?.paperColor ?? style.paperColor) === 'warm' ? '#fffefa' : '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height); }
+    if (!transparent) { context.fillStyle = paperHex(page.paperColor ?? page.style?.paperColor ?? style.paperColor); context.fillRect(0, 0, canvas.width, canvas.height); }
     context.drawImage(image, 0, 0, canvas.width, canvas.height); return canvas;
   } finally { URL.revokeObjectURL(url); image.src = ''; }
 }
 export async function rasterizeSpread(left: BookPage | undefined, right: BookPage | undefined, style: BookStyle): Promise<HTMLCanvasElement> {
   const pixels = pagePixels(style), canvas = document.createElement('canvas'); canvas.width = pixels.width * 2; canvas.height = pixels.height;
   const context = canvas.getContext('2d'); if (!context) throw new Error('画像を生成できません。');
-  context.fillStyle = style.paperColor === 'warm' ? '#fffefa' : '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = paperHex(style.paperColor); context.fillRect(0, 0, canvas.width, canvas.height);
   try {
     for (const [index, page] of [left, right].entries()) if (page) {
       const single = await rasterize(page, style); try { context.drawImage(single, pixels.width * index, 0); } finally { single.width = 0; single.height = 0; }

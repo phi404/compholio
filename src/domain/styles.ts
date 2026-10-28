@@ -2,10 +2,11 @@ import type { CharacterProperties, ParagraphProperties } from './contracts.js';
 import type { DocumentTree, LocalStyle, NamedStyle, StyleCatalog, TreeBlock, PageProperties, SectionProperties } from './model.js';
 import { finite, integer } from './style.js';
 import { identifier, object, textValue } from './validation.js';
+import { fontDefinition } from './fonts.js';
 
 export function defaultCatalog(): StyleCatalog {
   return {
-    characters: [{ id: 'text', name: '明朝・標準', properties: { fontWeight: 400, numbers: 'auto' } }, { id: 'strong', name: '強調', basedOn: 'text', properties: { fontWeight: 700 } }],
+    characters: [{ id: 'text', name: '標準', properties: { fontWeight: 400, numbers: 'auto' } }, { id: 'strong', name: '強調', basedOn: 'text', properties: { fontWeight: 700 } }],
     paragraphs: [{ id: 'body', name: '本文', properties: { alignment: 'start', keepWithNext: false }, characterStyleId: 'text' },
       { id: 'quote', name: '引用', basedOn: 'body', properties: { indentEm: 2 } },
       { id: 'centered', name: '中央揃え', basedOn: 'body', properties: { alignment: 'center', indentEm: 0 } }],
@@ -25,7 +26,8 @@ export function validateParagraph(value: unknown): asserts value is ParagraphPro
   if (value.keepWithNext !== undefined && typeof value.keepWithNext !== 'boolean') throw new Error('次段落との分離の設定を確認してください。');
 }
 export function validateCharacter(value: unknown): asserts value is CharacterProperties {
-  object(value, ['fontWeight', 'fontPt', 'letterSpacingEm', 'orientation', 'numbers', 'emphasis'], '文字書式');
+  object(value, ['fontFamily', 'fontWeight', 'fontPt', 'letterSpacingEm', 'orientation', 'numbers', 'emphasis'], '文字書式');
+  if (value.fontFamily !== undefined) fontDefinition(String(value.fontFamily));
   if (value.fontWeight !== undefined && ![400, 700].includes(value.fontWeight as number)) throw new Error('文字の太さを確認してください。');
   if (value.fontPt !== undefined) finite(value.fontPt, '文字サイズ', 5, 36);
   if (value.letterSpacingEm !== undefined) finite(value.letterSpacingEm, '字間', 0, 1);

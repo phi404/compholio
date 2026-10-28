@@ -30,7 +30,7 @@ export function catalogEditor(parent: HTMLElement, host: { book(): BookModel; ch
       select('本文のスタイル','style-section-body',props().paragraphStyleId??'',[['','本全体に従う'],...b.styles.paragraphs.map(s=>[s.id,s.name] as const)],v=>{const p={...props()};if(v)p.paragraphStyleId=v;else delete p.paragraphStyleId;update({properties:p});});
       select('開始位置','style-section-start',props().start??'',[['','本全体に従う'],['continuous','本文の続き'],['next','次ページ'],['left','左ページ'],['right','右ページ']],v=>{const p={...props()};if(v)p.start=v as NonNullable<SectionProperties['start']>;else delete p.start;update({properties:p});});
       styleFields<PageProperties>(fields,'style-section','page',()=>props().page??{},page=>update({properties:{...props(),page}}));
-    } else styleFields(fields,'style',kind==='characters'?'character':kind==='pages'?'page':'paragraph',()=>entry().properties as PageProperties,p=>update({properties:p}));
+    } else styleFields(fields,'style',kind==='characters'?'character':kind==='pages'?'page':'paragraph',()=>entry().properties as PageProperties,p=>update({properties:p}),kind==='characters'&&selected==='text'?['fontFamily']:[]);
     const note=document.createElement('p'); note.className='setting-caption';
     const effective=inheritedStyle(list as {id:string;name:string;properties:object;basedOn?:string}[],selected).properties;
     note.textContent=`継承後の設定 ${Object.keys(effective).length} 件。空欄は継承元・本全体に従います。`;controls.append(note);

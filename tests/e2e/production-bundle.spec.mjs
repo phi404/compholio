@@ -5,6 +5,7 @@ import { createBook } from '../../dist/domain/book.js';
 import { unzipSync, zipSync } from '../../public/vendor/fflate.js';
 import { absolute } from '../../scripts/lib.mjs';
 import { BookUI } from './ui-driver.mjs';
+import { FONT_CATALOG } from '../../dist/domain/fonts.js';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 test('@flow production bundle contains originals and a complete font, restores, and rejects damaged copies', async ({ page }) => {
@@ -40,4 +41,18 @@ test('@flow production bundle contains originals and a complete font, restores, 
   await expect(page.locator('#notice')).toContainText('変更または破損'); await ui.tab('原稿'); expect(await ui.manuscript().inputValue()).toBe(book.source);
   await ui.importTxt({ name: 'unsafe.compholio.zip', mimeType: 'application/zip', buffer: Buffer.from(zipSync({ '../outside': new Uint8Array([1]), 'manifest.json': files['manifest.json'] })) });
   await expect(page.locator('#notice')).toContainText('ファイル名'); await ui.tab('原稿'); expect(await ui.manuscript().inputValue()).toBe(book.source);
+});
+
+test('@flow a production bundle preserves every referenced typeface and its license',async({page})=>{
+  await page.goto('/');const ui=new BookUI(page),book=createBook('# 書体を持ち出す\n｜活字《かつじ》を残す。');
+  book.style.fontFamily='Noto Sans JP';book.style.paperColor='#24324b';book.style.textColor='#f4f0e7';
+  for(const [index,font]of FONT_CATALOG.entries())book.styles.characters.push({id:'saved-font-'+index,name:font.name,basedOn:'text',properties:{fontFamily:font.family}});
+  await ui.importTxt({name:'fonts.book.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(book))});
+  const folder=absolute('output/appearance/bundle');await mkdir(folder,{recursive:true});await ui.download('export-bundle',folder+'/fonts.compholio.zip');
+  const bytes=await readFile(folder+'/fonts.compholio.zip'),files=unzipSync(bytes),fonts=JSON.parse(Buffer.from(files['fonts.json']).toString());
+  expect(fonts).toHaveLength(FONT_CATALOG.length);
+  for(const font of FONT_CATALOG){expect(hash(files[font.path])).toBe(font.sha256);expect(Buffer.from(files[font.license]).toString()).toContain('SIL OPEN FONT LICENSE');}
+  await ui.paste('別の原稿。');await ui.importTxt({name:'fonts.compholio.zip',mimeType:'application/zip',buffer:bytes});
+  await ui.download('export-project',folder+'/restored.json');const restored=JSON.parse(await readFile(folder+'/restored.json','utf8'));
+  expect(restored.source).toBe(book.source);expect(restored.styles).toEqual(book.styles);expect(restored.style.fontFamily).toBe('Noto Sans JP');expect(restored.style.textColor).toBe('#f4f0e7');
 });

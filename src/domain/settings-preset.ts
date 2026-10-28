@@ -19,7 +19,7 @@ function presetStyle(value: unknown): BookStyle {
   object(value, [...Object.keys(defaultStyle()), 'columnGapMm', 'maxCharsPerLine', 'maxLinesPerPage', 'pageCountMultiple'], '本の設定');
   object(value.page, ['widthMm', 'heightMm'], '用紙');
   object(value.margins, ['topMm', 'bottomMm', 'innerMm', 'outerMm'], '余白');
-  object(value.folio, ['enabled', 'fromPage', 'startNumber', 'position', 'fontPt', 'insetMm', 'rules'], '番号');
+  object(value.folio, ['enabled', 'fromPage', 'startNumber', 'position', 'fontFamily', 'fontPt', 'insetMm', 'rules'], '番号');
   if (!Array.isArray(value.runningHeads) || value.runningHeads.length || !Array.isArray(value.folio.rules) || value.folio.rules.length || value.folio.fromPage !== 1 || value.folio.startNumber !== 1) throw new Error('本の設定には固定の柱やページ範囲を含められません。');
   return validateStyle(value);
 }
@@ -30,7 +30,7 @@ export function validateBookSettingsPreset(value: unknown): BookSettingsPreset {
   const style = presetStyle(value.style), catalog = validateCatalog(value.catalog);
   if (!Array.isArray(value.running) || value.running.length > 50) throw new Error('柱の設定を確認してください。');
   for (const entry of value.running) {
-    object(entry, ['content', 'position', 'side', 'fontPt', 'insetMm', 'hideOnSectionFirst'], '柱の設定');
+    object(entry, ['content', 'position', 'side', 'fontFamily', 'fontPt', 'insetMm', 'hideOnSectionFirst'], '柱の設定');
     object(entry.content, ['kind'], '柱の参照');
     if (entry.content.kind === 'text') throw new Error('設定テンプレートには固定の文章を含められません。');
     validateRunningElement({ ...entry, id: 'preset-running', scope: { kind: 'book' } }, style);

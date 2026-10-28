@@ -1,6 +1,9 @@
 import type { BookStyle, DecorationPosition, FolioRule, PageRange, RunningHead } from './contracts.js';
 import { pageSide } from './page-order.js';
 import { ASCII_ADVANCES } from './font-metrics.js';
+import { FONT_ADVANCES } from './font-advances.js';
+import { fontDefinition } from './fonts.js';
+import { paperHex, textHex } from './colors.js';
 import { dashAdvance } from './text-symbols.js';
 import { decorationSide, folioNumber, headsForPage } from './decoration.js';
 
@@ -25,19 +28,22 @@ export const IMAGE_PRESETS = {
   landscape: { label:'横長 16:9 · 1600 × 900', widthMm:1600/300*25.4, heightMm:76.2 },
 } as const;
 export function imageStyle(current: BookStyle, preset: keyof typeof IMAGE_PRESETS): BookStyle {
-  const page = IMAGE_PRESETS[preset], next = {...current,page:{widthMm:page.widthMm,heightMm:page.heightMm},fontPt:16,lineHeight:1.8,columns:1 as const,pageLayout:'uniform' as const,paperColor:'white' as const,margins:{topMm:10,bottomMm:10,innerMm:10,outerMm:10},folio:{...current.folio!,enabled:false},runningHeads:[]};
+  const page = IMAGE_PRESETS[preset], next = {...current,page:{widthMm:page.widthMm,heightMm:page.heightMm},fontPt:16,lineHeight:1.8,columns:1 as const,pageLayout:'uniform' as const,margins:{topMm:10,bottomMm:10,innerMm:10,outerMm:10},folio:{...current.folio!,enabled:false},runningHeads:[]};
   delete next.maxCharsPerLine; delete next.maxLinesPerPage; return validateStyle(next);
 }
 export function defaultStyle(): BookStyle { return presetStyle('standard'); }
 export function presetStyle(name: Preset): BookStyle {
   return { page: { widthMm: 105, heightMm: 148 }, writingMode: 'vertical-rl', binding: 'right', columns: 1,
     fontFamily: 'Book Mincho', ...PRESETS[name], margins: { ...PRESETS[name].margins }, pageLayout: 'book', paragraphIndent: false,
-    paperColor: 'white', folio: { enabled: true, fromPage: 1, startNumber: 1, position: 'bottom-outer', fontPt: 7, insetMm: 8, rules: [] }, runningHeads: [] };
+    paperColor: 'white', textColor: '#282b28', folio: { enabled: true, fromPage: 1, startNumber: 1, position: 'bottom-outer', fontPt: 7, insetMm: 8, rules: [] }, runningHeads: [] };
 }
 export const segmenter = new Intl.Segmenter('ja', { granularity: 'grapheme' });
 export const graphemes = (text: string): string[] => Array.from(segmenter.segment(text), item => item.segment);
-export const advance = (glyph: string): number => glyph === '\t' ? 4 : /^[\u200B\u200C\u200D\u2028\u2029\u2060\uFEFF]$/u.test(glyph) ? 0 : glyph === '\u00A0' ? ASCII_ADVANCES[' ']! : (dashAdvance(glyph) ?? ASCII_ADVANCES[glyph] ?? 1);
-export const verticalAdvance=(glyph:string,orientation='mixed'):number=>orientation==='upright'&&/^[0-9A-Za-z]$/u.test(glyph)?1:advance(glyph);
+export const advance = (glyph: string, family = 'Book Mincho'): number => {
+  const metrics = FONT_ADVANCES[family] ?? ASCII_ADVANCES;
+  return glyph === '\t' ? 4 : /^[\u200B\u200C\u200D\u2028\u2029\u2060\uFEFF]$/u.test(glyph) ? 0 : glyph === '\u00A0' ? metrics[' ']! : (dashAdvance(glyph) ?? metrics[glyph] ?? 1);
+};
+export const verticalAdvance=(glyph:string,orientation='mixed',family='Book Mincho'):number=>orientation==='upright'&&/^[0-9A-Za-z]$/u.test(glyph)?1:advance(glyph,family);
 export function finite(value: unknown, label: string, min: number, max: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) throw new Error(`${label}の値を確認してください。`);
   return value;
@@ -54,7 +60,8 @@ export const DECORATION_POSITIONS: readonly DecorationPosition[] = ['top-left', 
 export function validateStyle(value: unknown): BookStyle {
   if (!value || typeof value !== 'object') throw new Error('組版設定を読み込めません。');
   const v = value as BookStyle, style = defaultStyle();
-  if (!['vertical-rl', 'horizontal-tb'].includes(v.writingMode) || !['right', 'left'].includes(v.binding) || ![1, 2].includes(v.columns) || v.fontFamily !== 'Book Mincho') throw new Error('書字方向・段数・同梱明朝の設定を確認してください。');
+  if (!['vertical-rl', 'horizontal-tb'].includes(v.writingMode) || !['right', 'left'].includes(v.binding) || ![1, 2].includes(v.columns)) throw new Error('書字方向・段数の設定を確認してください。');
+  fontDefinition(v.fontFamily); style.fontFamily = v.fontFamily;
   style.writingMode = v.writingMode; style.columns = v.columns; style.binding = v.binding;
   if (v.columnGapMm !== undefined) style.columnGapMm = finite(v.columnGapMm, '段間', 2, 30);
   style.page = { widthMm: finite(v.page?.widthMm, '用紙の幅', 60, 350), heightMm: finite(v.page?.heightMm, '用紙の高さ', 60, 500) };
@@ -69,26 +76,27 @@ export function validateStyle(value: unknown): BookStyle {
   style.pageLayout = v.pageLayout ?? 'book';
   if (v.paragraphIndent !== undefined && typeof v.paragraphIndent !== 'boolean') throw new Error('字下げを確認してください。');
   style.paragraphIndent = v.paragraphIndent ?? false;
-  if (v.paperColor !== undefined && v.paperColor !== 'warm' && v.paperColor !== 'white') throw new Error('紙の色を確認してください。');
+  if (v.paperColor !== undefined) paperHex(v.paperColor);
   style.paperColor = v.paperColor ?? 'white';
+  style.textColor = textHex(v.textColor);
   if (v.pageCountMultiple !== undefined) {
     if (![1, 2, 4, 8, 16].includes(v.pageCountMultiple)) throw new Error('総ページ数の単位を確認してください。');
     style.pageCountMultiple = v.pageCountMultiple;
   }
   if (v.folio) {
-    const f = v.folio;
+    const f = v.folio; if(f.fontFamily !== undefined) fontDefinition(f.fontFamily);
     if (typeof f.enabled !== 'boolean' || !DECORATION_POSITIONS.includes(f.position) || !Array.isArray(f.rules) || f.rules.length > 50) throw new Error('ノンブルの設定を確認してください。');
     const rules = f.rules.map((r: FolioRule) => {
       range(r); if (typeof r.enabled !== 'boolean') throw new Error('ノンブルの範囲を確認してください。');
       return { id: r.id, from: r.from, to: r.to, enabled: r.enabled, ...(r.startNumber === undefined ? {} : { startNumber: integer(r.startNumber, '開始番号', 0) }) };
     });
-    style.folio = { enabled: f.enabled, fromPage: integer(f.fromPage, '表示開始ページ'), startNumber: integer(f.startNumber, '開始番号', 0), position: f.position, fontPt: finite(f.fontPt, '番号の大きさ', 5, 12), insetMm: finite(f.insetMm, '番号の端からの距離', 3, 20), rules };
+    style.folio = { ...(f.fontFamily ? { fontFamily: f.fontFamily } : {}), enabled: f.enabled, fromPage: integer(f.fromPage, '表示開始ページ'), startNumber: integer(f.startNumber, '開始番号', 0), position: f.position, fontPt: finite(f.fontPt, '番号の大きさ', 5, 12), insetMm: finite(f.insetMm, '番号の端からの距離', 3, 20), rules };
   }
   if (v.runningHeads !== undefined) {
     if (!Array.isArray(v.runningHeads) || v.runningHeads.length > 50) throw new Error('柱は50件以内にしてください。');
     style.runningHeads = v.runningHeads.map((r: RunningHead) => {
-      range(r); if (!['both', 'odd', 'even'].includes(r.side) || !DECORATION_POSITIONS.filter(p => p.startsWith('top-')).includes(r.position) || typeof r.text !== 'string' || r.text.length > 100) throw new Error('柱の設定を確認してください。');
-      return { id: r.id, from: r.from, to: r.to, side: r.side, position: r.position, text: r.text, fontPt: finite(r.fontPt, '柱の大きさ', 5, 12), insetMm: finite(r.insetMm, '柱の端からの距離', 3, 20) };
+      range(r); if(r.fontFamily !== undefined) fontDefinition(r.fontFamily); if (!['both', 'odd', 'even'].includes(r.side) || !DECORATION_POSITIONS.filter(p => p.startsWith('top-')).includes(r.position) || typeof r.text !== 'string' || r.text.length > 100) throw new Error('柱の設定を確認してください。');
+      return { ...(r.fontFamily ? { fontFamily: r.fontFamily } : {}), id: r.id, from: r.from, to: r.to, side: r.side, position: r.position, text: r.text, fontPt: finite(r.fontPt, '柱の大きさ', 5, 12), insetMm: finite(r.insetMm, '柱の端からの距離', 3, 20) };
     });
   }
   const decoration = (position: DecorationPosition, fontPt: number, insetMm: number, name: string) => {

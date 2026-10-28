@@ -1,6 +1,7 @@
 import type { BookPage, BookStyle, RenderElement } from '../domain/contracts.js';
 import type { Publication } from '../domain/model.js';
 import { originalBytes } from './bundle.js';
+import { paperHex } from '../domain/colors.js';
 import { rasterize, pngBlob, type RasterOptions } from './raster.js';
 
 interface PDFBox { x: number; y: number; width: number; height: number }
@@ -62,8 +63,8 @@ export function preservedPDFPages(pdf: VectorDocument, lib: VectorLibrary, book:
   return {
     hasPDF(page: BookPage): boolean { return (page.elements ?? []).some(isPDF); },
     async draw(page: BookPage, target: VectorPage): Promise<void> {
-      const warm = (page.paperColor ?? style.paperColor) === 'warm';
-      target.drawRectangle({ x: -(raster.bleedMm ?? 0) * pt, y: -(raster.bleedMm ?? 0) * pt, width: width + 2 * (raster.bleedMm ?? 0) * pt, height: height + 2 * (raster.bleedMm ?? 0) * pt, color: lib.rgb(1, warm ? 254 / 255 : 1, warm ? 250 / 255 : 1) });
+      const paper=paperHex(page.paperColor??page.style?.paperColor??style.paperColor),channels=[1,3,5].map(offset=>parseInt(paper.slice(offset,offset+2),16)/255);
+      target.drawRectangle({ x: -(raster.bleedMm ?? 0) * pt, y: -(raster.bleedMm ?? 0) * pt, width: width + 2 * (raster.bleedMm ?? 0) * pt, height: height + 2 * (raster.bleedMm ?? 0) * pt, color: lib.rgb(channels[0]!,channels[1]!,channels[2]!) });
       let pending: RenderElement[] = [];
       for (const element of page.elements ?? []) {
         signal.throwIfAborted();
@@ -76,7 +77,10 @@ export function preservedPDFPages(pdf: VectorDocument, lib: VectorLibrary, book:
         const tx = x + (boxW - naturalW * scale) / 2, ty = y + (boxH - naturalH * scale) / 2;
         const matrix: [number, number, number, number, number, number] = rotation === 90 ? [0, -scale, scale, 0, tx, ty + crop.width * scale] : rotation === 180 ? [-scale, 0, 0, -scale, tx + crop.width * scale, ty + crop.height * scale] : rotation === 270 ? [0, scale, -scale, 0, tx + crop.height * scale, ty] : [scale, 0, 0, scale, tx, ty];
         const object = target.node.newXObject('SourcePage', form.ref);
-        target.pushOperators(lib.pushGraphicsState(), lib.rectangle(x, y, boxW, boxH), lib.clip(), lib.endPath(), lib.concatTransformationMatrix(...matrix), lib.drawObject(object), lib.popGraphicsState());
+        target.pushOperators(lib.pushGraphicsState(), lib.rectangle(x, y, boxW, boxH), lib.clip(), lib.endPath(), lib.concatTransformationMatrix(...matrix));
+        // PDF previews are rendered on white; retain that source paper inside the placed page.
+        target.drawRectangle({x:0,y:0,width:crop.width,height:crop.height,color:lib.rgb(1,1,1)});
+        target.pushOperators(lib.drawObject(object), lib.popGraphicsState());
       }
       await layer(page, target, pending, true); signal.throwIfAborted();
     },

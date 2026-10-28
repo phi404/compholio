@@ -1238,6 +1238,48 @@
         "local-first"
       ],
       "specification": "docs/guide.md"
+    },
+    {
+      "id": "R-68",
+      "summary": "同梱の明朝・ゴシックを書体ごとのメトリクスで組み、本文・見出し・ノンブル・柱・自由ページの継承と原稿投影、制作データへの同梱を保つ",
+      "phase": "mvp",
+      "fixtures": [
+        "book-appearance"
+      ],
+      "automated": [
+        "product",
+        "e2e",
+        "exports"
+      ],
+      "manual": [
+        "default-page-quality",
+        "vertical-glyphs-and-spacing",
+        "mobile-usability",
+        "export-appearance",
+        "local-first"
+      ],
+      "specification": "docs/guide.md"
+    },
+    {
+      "id": "R-69",
+      "summary": "白い紙を初期値に配色候補と個別RGBを選び、履歴・再開・プレビュー・PNG・PDFで同じ紙色と文字色を保つ",
+      "phase": "mvp",
+      "fixtures": [
+        "book-appearance"
+      ],
+      "automated": [
+        "product",
+        "e2e",
+        "exports"
+      ],
+      "manual": [
+        "default-page-quality",
+        "vertical-glyphs-and-spacing",
+        "mobile-usability",
+        "export-appearance",
+        "local-first"
+      ],
+      "specification": "docs/guide.md"
     }
   ]
 }

@@ -3,9 +3,11 @@ import type { RunningElement } from './model.js';
 import { DECORATION_POSITIONS, finite } from './style.js';
 import { validateScope } from './scope.js';
 import { identifier, object, textValue } from './validation.js';
+import { fontDefinition } from './fonts.js';
 
 export function validateRunningElement(value: unknown, style: BookStyle): asserts value is RunningElement {
-  object(value, ['id', 'scope', 'content', 'position', 'side', 'fontPt', 'insetMm', 'hideOnSectionFirst'], '柱'); identifier(value.id); validateScope(value.scope);
+  object(value, ['id', 'scope', 'content', 'position', 'side', 'fontFamily', 'fontPt', 'insetMm', 'hideOnSectionFirst'], '柱'); identifier(value.id); validateScope(value.scope);
+  if (value.fontFamily !== undefined) fontDefinition(String(value.fontFamily));
   object(value.content, ['kind', 'text'], '柱の内容');
   if (value.content.kind === 'text') textValue(value.content.text, 100, '柱の文字');
   else { object(value.content, ['kind'], '柱の内容'); if (!['title', 'author', 'chapter', 'heading', 'pageNumber'].includes(value.content.kind as string)) throw new Error('未対応の柱の内容です。'); }

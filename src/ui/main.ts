@@ -4,6 +4,7 @@ import type { BookModel } from '../domain/model.js';
 import { createPublication, flattenDocument, validatePublication } from '../domain/publication.js';
 import { asBook, editBookSource, sourceRangeFor } from '../domain/book.js';
 import { SAMPLE } from '../domain/sample.js';
+import { loadPageFonts } from '../io/fonts.js';
 import { validateStyle, geometry } from '../domain/style.js';
 import { adjacentPage, spreadPages } from '../domain/page-order.js';
 import { sourceBlocks } from '../domain/source.js';
@@ -61,7 +62,7 @@ let focusPanes: { left: boolean; right: boolean } | undefined;
 let layoutTimer: ReturnType<typeof setTimeout> | undefined, saveTimer: ReturnType<typeof setTimeout> | undefined, saveQueue = Promise.resolve(), saveSerial = 0, lastEditAt = 0;
 const history: Draft[] = [], future: Draft[] = [], selectedPages = new Set<number>(); let galleryAnchor = 1;
 let galleryObserver: IntersectionObserver | undefined;
-const fontReady = document.fonts.load("16px 'Book Mincho'").then(fonts => { if (!fonts.length) throw new Error('本文フォントを読み込めません。'); });
+
 function notify(message: string, allowUndo = false, kind: 'info' | 'error' = allowUndo ? 'info' : 'error'): void { el('notice-text').textContent = message; el('notice').dataset.kind = kind; el('notice').hidden = false; el('undo-import').hidden = !allowUndo; }
 function resumeAfterNotice(event: Event): void { const notice = el('notice'); if (notice.dataset.kind === 'info' && event.target instanceof Node && !notice.contains(event.target)) notice.hidden = true; }
 document.addEventListener('pointerdown', resumeAfterNotice, true);
@@ -319,7 +320,7 @@ function showPages(): void {
 worker.onmessage = async (event: MessageEvent<{ revision: number; result?: RenderedPages; error?: string }>) => {
   const response = event.data; layoutJobs.complete(response.revision); if (response.revision !== revision) return;
   if (!response.result) { preview.dataset.layoutState = 'error'; el('layout-pending').hidden = true; notify(response.error ?? '組版に失敗しました。'); return; }
-  try { await fontReady; } catch (error) { preview.dataset.layoutState = 'error'; el('layout-pending').hidden = true; notify(error instanceof Error ? error.message : 'フォントを読み込めません。'); return; }
+  try { await loadPageFonts(response.result.pages,style); } catch (error) { preview.dataset.layoutState = 'error'; el('layout-pending').hidden = true; notify(error instanceof Error ? error.message : 'フォントを読み込めません。'); return; }
   if (response.revision !== revision) return; result = resolveLayoutAssets(response.result, project); layoutRevision = response.revision;
   if (followSelection) {
     const chosen = selection, ids = chosen.kind === 'chapter' ? new Set(project.document.children.find(s => s.id === chosen.id)?.children.map(b => b.id) ?? []) : undefined;

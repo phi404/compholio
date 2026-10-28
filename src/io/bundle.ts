@@ -3,7 +3,8 @@ import { serializeProject, restoreProject } from '../domain/project.js';
 import { createBookSettingsPreset } from '../domain/settings-preset.js';
 import { asBook } from '../domain/book.js';
 import { object, textValue } from '../domain/validation.js';
-import { bundledFont } from './resources.js';
+import { fontResource } from './resources.js';
+import { bookFonts } from '../domain/font-use.js';
 import { zipBlobs, readProductionFiles } from './zip.js';
 
 export const MAX_BUNDLE_BYTES = 192 * 1024 * 1024;
@@ -26,14 +27,14 @@ export async function productionBundle(project: Publication, signal: AbortSignal
     files[path] = originalBytes(asset.original);
     return { id: asset.id, name: asset.name, path, mediaType: asset.mediaType };
   });
-  for (const [name, url] of [[bundledFont.path, bundledFont.url], [bundledFont.license, bundledFont.licenseURL]] as const) {
+  const includedFonts=bookFonts(book).map(fontResource);
+  for(const font of includedFonts) for (const [name, url] of [[font.path, font.url], [font.license, font.licenseURL]] as const) {
     signal.throwIfAborted(); const response = await fetch(url, { signal });
     if (!response.ok) throw new Error('制作データに同梱する書体を読み込めません。');
     files[name] = new Uint8Array(await response.arrayBuffer());
   }
-  const { family, name, path, license } = bundledFont;
-  if (await hash(files[path]!) !== bundledFont.sha256) throw new Error('同梱書体が変更されています。アプリを確認してから保存してください。');
-  files['fonts.json'] = encode([{ family, name, path, license }]);
+  for(const font of includedFonts)if(await hash(files[font.path]!)!==font.sha256)throw new Error('同梱書体が変更されています。アプリを確認してから保存してください。');
+  files['fonts.json'] = encode(includedFonts.map(({family,name,path,license})=>({family,name,path,license})));
   let total = 0;
   const entries = [];
   for (const [path, data] of Object.entries(files)) {
@@ -60,10 +61,12 @@ export async function restoreProductionBundle(bytes: Uint8Array): Promise<Public
   }
   if (Object.keys(files).some(path => !paths.has(path))) throw new Error('一覧にないファイルが含まれています。');
   let fonts: unknown; try { fonts = JSON.parse(decode('fonts.json')); } catch { throw new Error('制作データの書体一覧を読み込めません。'); }
-  if (!Array.isArray(fonts) || fonts.length !== 1) throw new Error('未対応の書体を含む制作データです。元ファイルを保管してください。');
-  object(fonts[0], ['family', 'name', 'path', 'license'], '制作データの書体');
-  if (fonts[0].family !== bundledFont.family || fonts[0].path !== bundledFont.path || fonts[0].name !== bundledFont.name || fonts[0].license !== bundledFont.license || !files[bundledFont.path] || await hash(files[bundledFont.path]!) !== bundledFont.sha256) throw new Error('制作データの書体が現在のCompholioと異なります。元の書体を保管してください。');
-  decode(bundledFont.license); decode('settings.json');
-  const restored = restoreProject(decode('book.json'));
-  const book = asBook(restored); decode(`manuscript.${book.syntax === 'markdown' ? 'md' : 'txt'}`); return book;
+  const restored=restoreProject(decode('book.json')), expected=bookFonts(restored);
+  if(!Array.isArray(fonts)||fonts.length!==expected.length)throw new Error('制作データの書体一覧を確認してください。');
+  const seen=new Set<string>();
+  for(const entry of fonts){object(entry,['family','name','path','license'],'制作データの書体');const font=fontResource(String(entry.family));
+    if(seen.has(font.family)||!expected.includes(font.family)||entry.name!==font.name||entry.path!==font.path||entry.license!==font.license||!files[font.path]||await hash(files[font.path]!)!==font.sha256)throw new Error('制作データの書体が現在のCompholioと異なります。元の書体を保管してください。');
+    if(!files[font.license]?.byteLength)throw new Error('制作データの書体ライセンスがありません。');seen.add(font.family);
+  }
+  decode('settings.json');const book=asBook(restored);decode(`manuscript.${book.syntax === 'markdown' ? 'md' : 'txt'}`);return book;
 }

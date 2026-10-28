@@ -1,6 +1,7 @@
 import { iconChoices, alignmentOptions, weightOptions } from './choices.js';
 import type { CharacterProperties, ParagraphProperties } from '../domain/contracts.js';
 import type { PageProperties } from '../domain/model.js';
+import { FONT_CATALOG } from '../domain/fonts.js';
 
 type Values = CharacterProperties | ParagraphProperties | PageProperties;
 export function styleFields<P extends Values>(parent: HTMLElement, prefix: string, kind: 'character' | 'paragraph' | 'page', current: () => P, edit: (value: P, key: string) => void, omit: string[] = []): void {
@@ -21,6 +22,7 @@ export function styleFields<P extends Values>(parent: HTMLElement, prefix: strin
     row.append(control); parent.append(row);
   };
   if (kind === 'character') {
+    add('fontFamily', '書体', FONT_CATALOG.map(font => [font.family, font.label]));
     add('fontWeight', '太さ', [['400', '標準'], ['700', '太字']]); add('fontPt', '文字サイズ / pt', undefined, 5, 36);
     add('letterSpacingEm', '字間 / 字', undefined, 0, 1, .05);
     add('orientation', '英字の向き', [['mixed', '自動（欧文は横倒し）'], ['upright', '一文字ずつ正立'], ['sideways', '横倒し']]);

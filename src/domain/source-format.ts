@@ -2,7 +2,7 @@ import type { LocalStyle, SectionProperties } from './model.js';
 import { validateLocal, validateSection } from './styles.js';
 
 const paragraphKeys = new Set(['indentEm', 'insetEm', 'endInsetEm', 'beforeEm', 'afterEm', 'lineHeight', 'alignment', 'keepWithNext', 'orphans', 'widows']);
-const characterKeys = new Set(['fontWeight', 'fontPt', 'letterSpacingEm', 'orientation', 'numbers', 'emphasis']);
+const characterKeys = new Set(['fontFamily', 'fontWeight', 'fontPt', 'letterSpacingEm', 'orientation', 'numbers', 'emphasis']);
 const numeric = new Set(['indentEm', 'insetEm', 'endInsetEm', 'beforeEm', 'afterEm', 'lineHeight', 'fontWeight', 'fontPt', 'letterSpacingEm', 'columns', 'columnGapMm', 'maxCharsPerLine', 'maxLinesPerPage', 'topMm', 'bottomMm', 'innerMm', 'outerMm', 'numberStart', 'orphans', 'widows']);
 const boolean = new Set(['keepWithNext', 'showHeads', 'showFolio']);
 export function readAttributes(text: string): Record<string, string | number | boolean> {

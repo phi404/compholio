@@ -7,13 +7,13 @@ import { wrapRuns as wrap } from './line-breaks.js';
 
 type Atom = Inline & { advanceEm: number; sizeMm: number; tcy?: boolean; displayText?: string; textFrom: number; textTo: number };
 const textOf = (r: Inline) => r.kind === 'ruby' ? r.base : r.text;
-const width = (s: string) => graphemes(s).reduce((sum,g)=>sum+advance(g),0);
 function atoms(runs: readonly Inline[], style: BookStyle, scale: number, capacity: number, warn: (code: string) => void): Atom[] {
   const out: Atom[] = [], font = style.fontPt * 25.4 / 72; let textOffset = 0;
   for (const run of runs) {
+    const family=run.fontFamily??style.fontFamily,width=(s:string)=>graphemes(s).reduce((sum,g)=>sum+advance(g,family),0);
     const size = run.fontPt ? run.fontPt * 25.4 / 72 : font * scale, factor = size / font, space = run.letterSpacingEm ?? 0;
     if (run.kind === 'ruby') {
-      const baseWidth=(s:string)=>graphemes(s).reduce((sum,g)=>sum+(style.writingMode==='vertical-rl'?verticalAdvance(g,run.orientation):advance(g)),0);
+      const baseWidth=(s:string)=>graphemes(s).reduce((sum,g)=>sum+(style.writingMode==='vertical-rl'?verticalAdvance(g,run.orientation,family):advance(g,family)),0);
       const base = graphemes(run.base), reading = graphemes(run.reading); let start = 0;
       while (start < base.length) {
         let end = start + 1;

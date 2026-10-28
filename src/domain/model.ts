@@ -25,7 +25,7 @@ export type ScopedStyle = LocalStyle & { id: string; scope: Scope };
 export interface RunningElement {
   id: string; scope: Scope;
   content: { kind: 'text'; text: string } | { kind: 'title' | 'author' | 'chapter' | 'heading' | 'pageNumber' };
-  position: DecorationPosition; side: 'both' | 'odd' | 'even'; fontPt: number; insetMm: number; hideOnSectionFirst: boolean;
+  fontFamily?: string; position: DecorationPosition; side: 'both' | 'odd' | 'even'; fontPt: number; insetMm: number; hideOnSectionFirst: boolean;
 }
 export interface PrintSettings { purpose: 'screen' | 'print'; bleedMm: number; marks: 'none' | 'corners' | 'all'; dpi: 300 | 350 | 600; color: 'rgb' | 'gray'; pdfSource: 'raster' | 'preserve' }
 export interface Publication {
@@ -37,7 +37,7 @@ export interface Publication {
 }
 export type ElementBox = { id: string; xMm: number; yMm: number; widthMm: number; heightMm: number; locked?: boolean };
 export type PageElement = ElementBox & (
-  { kind: 'text'; text: string; fontPt: number; fontWeight: 400 | 700; alignment: 'start' | 'center' | 'end'; direction: 'horizontal' | 'vertical' }
+  { kind: 'text'; text: string; fontFamily?: string; fontPt: number; fontWeight: 400 | 700; alignment: 'start' | 'center' | 'end'; direction: 'horizontal' | 'vertical' }
   | { kind: 'image'; assetId: string; assetPage: number; fit: 'contain' | 'cover' }
   | { kind: 'line' | 'rect'; color: string; strokeMm: number }
 );
@@ -55,5 +55,5 @@ export interface SpecialPageDefinition {
 export interface AssetImage { dataUrl: string; width: number; height: number; widthMm?: number; heightMm?: number }
 export interface BookAsset { id: string; name: string; mediaType: 'image/png' | 'image/jpeg' | 'image/svg+xml' | 'application/pdf'; original: string; bytes: number; images: AssetImage[] }
 /** Physical overrides never change text capacity. A sparse page set preserves holes. */
-export interface PageOverride { id: string; pages: number[]; folio?: boolean; hideHeads?: boolean; paperColor?: 'white' | 'warm' }
+export interface PageOverride { id: string; pages: number[]; folio?: boolean; hideHeads?: boolean; paperColor?: BookStyle['paperColor'] }
 export type BookModel = Publication & { schemaVersion: 3; specialPages: SpecialPageDefinition[]; assets: BookAsset[]; pageOverrides: PageOverride[] };

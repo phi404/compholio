@@ -15,7 +15,7 @@ export function templatePages(page: SpecialPageDefinition, style: BookStyle, toc
   fresh();
   for (const [index, entry] of toc.entries()) {
     const inset = Math.min(width - 15 - fontMm, ((entry.level ?? 1) - 1) * (page.toc?.indentMm ?? 3));
-    const lines = elementTextLines(entry.title, Math.max(1, (width - 15 - inset) / fontMm));
+    const lines = elementTextLines(entry.title, Math.max(1, (width - 15 - inset) / fontMm),style.fontFamily);
     for (let at = 0; at < lines.length;) {
       const available = bottom - y < 9 ? 0 : Math.max(0, Math.floor((bottom - y - fontMm - .2) / pitch) + 1);
       if (!available) { fresh(); continue; }
