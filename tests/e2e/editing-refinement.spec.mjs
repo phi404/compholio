@@ -42,7 +42,8 @@ test('@flow chapter drag and keyboard reorder preserve chapter content and speci
   await ui.paste('# 甲\n甲の本文\n# 乙\n乙の本文\n# 丙\n丙の本文'); const before=await saved(page);
   await ui.tab('原稿');await page.locator('#tab-structure').click();
   const first=page.locator('.outline-row[data-kind=chapter]').nth(0), last=page.locator('.outline-row[data-kind=chapter]').nth(2);
-  await first.dragTo(last); await ui.ready(); const dragged=await saved(page); expect(dragged.document.children.map(s=>s.id)).toEqual([before.document.children[1].id,before.document.children[2].id,before.document.children[0].id]); expect(dragged.source).toContain('# 甲\n甲の本文');
+  const targetBox=await last.boundingBox();expect(targetBox).not.toBeNull();
+  await first.dragTo(last,{targetPosition:{x:targetBox.width/2,y:targetBox.height*.75}}); await ui.ready(); const dragged=await saved(page); expect(dragged.document.children.map(s=>s.id)).toEqual([before.document.children[1].id,before.document.children[2].id,before.document.children[0].id]); expect(dragged.source).toContain('# 甲\n甲の本文');
   await page.locator(`.outline-row[data-item-id="${before.document.children[0].id}"]`).press('Alt+ArrowUp'); await ui.ready(); expect((await saved(page)).document.children.map(s=>s.id)).toEqual([before.document.children[1].id,before.document.children[0].id,before.document.children[2].id]);
   await page.locator('#undo').click(); await ui.ready(); expect((await saved(page)).document.children.map(s=>s.id)).toEqual(dragged.document.children.map(s=>s.id));
   await addPage(page,ui,'title'); const b=await saved(page), p=b.specialPages.at(-1); expect(p.representation).toBe('layout');
