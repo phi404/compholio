@@ -51,7 +51,10 @@ test('@flow print PDFs preserve trim and page order with bleed grayscale marks a
 for(const item of [{id:'b6-mono',size:'b6',preset:'mono',bleed:'3'},{id:'a5-color',size:'a5',preset:'color',bleed:'0'}])test('@flow printed '+item.id+' uses its own trim and corner marks',async({page})=>{
   await mkdir(dir,{recursive:true});await page.setViewportSize({width:1440,height:1000});await page.goto('/');const ui=new BookUI(page);
   await ui.paste('# 本文\n異なる判型でも本文の位置と頁を保ちます。');await ui.control('page-size',item.size);const source=await page.locator('#manuscript').inputValue();expect(await ui.pageCount()).toBe(1);
-  await page.locator('#open-export').click();await page.locator('#export-pdf-preset').selectOption(item.preset);await ui.ready();await page.getByText('PDFの詳細',{exact:true}).click();await page.locator('#export-bleed').fill(item.bleed);await page.locator('#export-bleed').blur();await ui.ready();await page.locator('#export-marks').selectOption('corners');await ui.ready();await page.locator('#close-export').click();
+  await page.locator('#open-export').click();await page.locator('#export-pdf-preset').selectOption(item.preset);await ui.ready();await page.getByText('PDFの詳細',{exact:true}).click();await page.locator('#export-bleed').fill(item.bleed);
+  // A disclosure update can refresh the dialog before the numeric edit is committed.
+  await page.locator('#export-pdf-details').dispatchEvent('toggle');await expect(page.locator('#export-bleed')).toHaveValue(item.bleed);
+  await page.locator('#export-bleed').blur();await ui.ready();await page.locator('#export-marks').selectOption('corners');await ui.ready();await expect(page.locator('#export-bleed')).toHaveValue(item.bleed);await page.locator('#close-export').click();
   await ui.download('export-pdf',dir+'/'+item.id+'.pdf');expect(await page.locator('#manuscript').inputValue()).toBe(source);expect(await ui.pageCount()).toBe(1);
   await writeFile(dir+'/'+item.id+'.json',JSON.stringify({sourceFingerprint:await fingerprint(),file:item.id+'.pdf',pages:1}));
 });

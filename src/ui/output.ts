@@ -58,7 +58,7 @@ export function output(host: OutputHost) {
     el('pdf-label').textContent = (el<HTMLSelectElement>('export-scope').value === 'all' ? 'すべてのページ' : '指定した範囲') + ` · ${settings.dpi} dpi`;
     el('png-all-label').textContent = el<HTMLSelectElement>('export-scope').value === 'all' ? '全ページをまとめて保存（ZIP）' : '指定範囲をまとめて保存（ZIP）';
     const preset = settings.purpose === 'screen' ? 'screen' : JSON.stringify(settings) === JSON.stringify(monoPDF) ? 'mono' : JSON.stringify(settings) === JSON.stringify(colorPDF) ? 'color' : 'custom';
-    setValue('export-pdf-preset', preset); setValue('export-bleed', settings.bleedMm); setValue('export-marks', settings.marks); setValue('export-dpi', settings.dpi); setValue('export-color', settings.color); setValue('export-pdf-mode', settings.pdfSource);
+    setValue('export-pdf-preset', preset); if (document.activeElement !== input('export-bleed')) setValue('export-bleed', settings.bleedMm); setValue('export-marks', settings.marks); setValue('export-dpi', settings.dpi); setValue('export-color', settings.color); setValue('export-pdf-mode', settings.pdfSource);
     const sheet = printGeometry(s.style, settings), mm = (v: number) => Number(v.toFixed(2));
     el('export-sheet-info').textContent = `仕上がり ${mm(sheet.trim.width)} × ${mm(sheet.trim.height)} mm · PDF用紙 ${mm(sheet.media.width)} × ${mm(sheet.media.height)} mm`;
     const proof = el('export-print-proof'), showProof = dialog.open && dialog.dataset.intent === 'export' && el<HTMLDetailsElement>('export-pdf-details').open && settings.purpose === 'print' && !!s.pages.length;
@@ -142,6 +142,7 @@ export function output(host: OutputHost) {
   for (const id of ['export-bleed', 'export-marks', 'export-dpi', 'export-color', 'export-pdf-mode']) el(id).addEventListener('change', () => {
     updatePrint({ ...printSettings(host.state().project), purpose: id === 'export-pdf-mode' ? printSettings(host.state().project).purpose : 'print', bleedMm: Number(input('export-bleed').value), marks: el<HTMLSelectElement>('export-marks').value as PrintSettings['marks'], dpi: Number(el<HTMLSelectElement>('export-dpi').value) as PrintSettings['dpi'], color: el<HTMLSelectElement>('export-color').value as PrintSettings['color'], pdfSource: el<HTMLSelectElement>('export-pdf-mode').value as PrintSettings['pdfSource'] });
   });
+  input('export-bleed').addEventListener('blur', sync);
   for (const id of ['export-from', 'export-to', 'export-accept-loss']) input(id).addEventListener('change', sync);
   input('export-name').addEventListener('input', () => { host.rename(input('export-name').value); sync(); });
   input('export-name').addEventListener('change', () => { commitName(); sync(); });
